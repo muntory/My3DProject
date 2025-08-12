@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UIElements;
 
 public class PlayerController : MonoBehaviour
 {
@@ -20,6 +21,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     float moveThreshold = 0.03f;
 
+
     [Header("Camera")]
     [SerializeField]
     Transform cameraArm;
@@ -31,10 +33,23 @@ public class PlayerController : MonoBehaviour
     float minRotX = -40f;
     [SerializeField]
     float maxRotX = 40f;
-    
+
+    float cameraPitch;
+
+    const float DETECTION_INTERVAL = 0.1f;
+    float lastDetectionTime;
+    public float detectionDistance = 5f;
+    public LayerMask interactableLayer;
+    public Transform raycastOrigin;
+    IInteractable currentInteractable;
+
     Rigidbody rb;
     Animator animator;
 
+    bool isJumping;
+    bool isFalling;
+    bool isGrounded;
+    float lastGroundTime;
 
     private void Awake()
     {
@@ -43,7 +58,16 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         rb.freezeRotation = true;
         animator = GetComponent<Animator>();
+        cameraPitch = cameraArm.localEulerAngles.x;
 
+        if (raycastOrigin == null)
+        {
+            raycastOrigin = cameraArm;
+        }
+
+        isJumping = false;
+        isFalling = false;
+        isGrounded = false;
     }
 
 
@@ -56,6 +80,18 @@ public class PlayerController : MonoBehaviour
     private void OnDisable()
     {
         playerInput.onActionTriggered -= HandleInputActionTriggered;
+    }
+
+    private void Update()
+    {
+        if (Time.time - lastDetectionTime > DETECTION_INTERVAL)
+        {
+            DetectInteractable();
+            lastDetectionTime = Time.time;
+        }
+
+       
+        
     }
 
 
@@ -72,29 +108,45 @@ public class PlayerController : MonoBehaviour
         animator.SetFloat(AnimatorParam.GroundSpeed, groundSpeed);
         animator.SetFloat(AnimatorParam.VelocityY, rb.velocity.y);
 
-        bool isJumping = animator.GetBool(AnimatorParam.IsJumping);
-        bool isFalling = animator.GetBool(AnimatorParam.IsFalling);
+        DetectGround();
 
-        if (isJumping || isFalling)
+        if (isJumping && isFalling)
         {
-            if (Mathf.Abs(rb.velocity.y) < jumpThreshold)
+            if (isGrounded)
             {
-                animator.SetBool(AnimatorParam.IsGrounded, true);
+                isJumping = false;
                 animator.SetBool(AnimatorParam.IsJumping, false);
-                animator.SetBool(AnimatorParam.IsFalling, false);
+
             }
-
-        }
-        else
-        {
-            animator.SetBool(AnimatorParam.IsGrounded, true);
         }
 
-        if (isJumping && rb.velocity.y < 0f || rb.velocity.y < -5f)
-        {
-            animator.SetBool(AnimatorParam.IsFalling, true);
+        isFalling = !isGrounded && rb.velocity.y < 0f;
+        animator.SetBool(AnimatorParam.IsFalling, isFalling);
 
-        }
+
+        
+
+        //if (isJumping || isFalling)
+        //{
+
+        //    if (Mathf.Abs(rb.velocity.y) < jumpThreshold)
+        //    {
+        //        animator.SetBool(AnimatorParam.IsGrounded, true);
+        //        animator.SetBool(AnimatorParam.IsJumping, false);
+        //        animator.SetBool(AnimatorParam.IsFalling, false);
+        //    }
+
+        //}
+        //else
+        //{
+        //    animator.SetBool(AnimatorParam.IsGrounded, true);
+        //}
+
+        //if (isJumping && rb.velocity.y < 0f || rb.velocity.y < -5f)
+        //{
+        //    animator.SetBool(AnimatorParam.IsFalling, true);
+
+        //}
 
         if (groundSpeed < moveThreshold)
         {
@@ -109,6 +161,70 @@ public class PlayerController : MonoBehaviour
         animator.SetFloat(AnimatorParam.Right, moveInput.x);
 
         
+    }
+
+    void Jump(float jumpForce)
+    {
+        rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+        isJumping = true;
+        animator.SetBool(AnimatorParam.IsJumping, true);
+
+    }
+
+    public void JumpByOther(float jumpForce)
+    {
+        Jump(jumpForce);
+
+    }
+
+
+    void DetectInteractable()
+    {
+        Vector3 origin = raycastOrigin.position;
+        Vector3 direction = raycastOrigin.forward;
+
+        RaycastHit hit;
+        if (Physics.Raycast(origin, direction, out hit, detectionDistance, interactableLayer))
+        {
+            IInteractable interactable = hit.collider.GetComponent<IInteractable>();
+
+            if (!UIManager.Instance.IsActive<InteractPopup>())
+            {
+                UIManager.Instance.ShowPopup<InteractPopup>().SetInteractable(interactable);
+            }
+
+        }
+        else
+        {
+            if (UIManager.Instance.IsActive<InteractPopup>())
+            {
+                UIManager.Instance.ClosePopupUI();
+            }
+        }
+        Debug.DrawRay(origin, direction * detectionDistance,
+                     currentInteractable != null ? Color.green : Color.red);
+    }
+
+    void DetectGround()
+    {
+        Vector3 origin = transform.position + Vector3.up;
+        Vector3 direction = Vector3.down;
+        LayerMask layermask = LayerMask.GetMask("Ground");
+
+        RaycastHit hit;
+        if (Physics.Raycast(origin, direction, out hit, 1.1f, layermask))
+        {
+            isGrounded = true;
+            
+        }
+        else
+        {
+            isGrounded = false;
+        }
+        animator.SetBool(AnimatorParam.IsGrounded, isGrounded);
+
+        Debug.DrawRay(origin, direction * 1.1f,
+                     isGrounded ? Color.green : Color.red);
     }
 
 
@@ -149,11 +265,10 @@ public class PlayerController : MonoBehaviour
     {
         Vector2 delta = context.ReadValue<Vector2>();
 
-        // ¡¬øÏ »∏¿¸
+        // Ï¢åÏö∞ ÌöåÏ†Ñ
         transform.Rotate(Vector3.up * delta.x * lookSensitivityHorizontal);
 
-        // ªÛ«œ »∏¿¸
-        float cameraPitch = cameraArm.localEulerAngles.x;
+        // ÏÉÅÌïò ÌöåÏ†Ñ
         cameraPitch -= delta.y * lookSensitivityVertical;
         cameraPitch = Mathf.Clamp(cameraPitch, minRotX, maxRotX);
 
@@ -163,19 +278,14 @@ public class PlayerController : MonoBehaviour
 
     void OnJump(InputAction.CallbackContext context)
     {
-        bool isJumping = animator.GetBool(AnimatorParam.IsJumping);
-        bool isGrounded = animator.GetBool(AnimatorParam.IsGrounded);
-
         if (isJumping || !isGrounded)
         {
             return;
         }
 
-        animator.SetBool(AnimatorParam.IsJumping, true);
-        animator.SetBool(AnimatorParam.IsGrounded, false);
-
-        rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+        Jump(jumpForce);
         
 
     }
+
 }
