@@ -3,6 +3,23 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+public enum StatType
+{
+    Health,
+    WalkSpeed,
+
+}
+
+[System.Serializable]
+public class StatEffect
+{
+    public StatType statType;
+    public float value;
+    public bool isPercent;
+    public bool hasDuration;
+    public float duration;
+}
+
 public class CharacterStat : MonoBehaviour
 {
     private float health;
@@ -17,27 +34,65 @@ public class CharacterStat : MonoBehaviour
     }
     public float MaxHealth;
 
+    public float MaxWalkSpeed;
+    private float walkSpeed;
+    public float WalkSpeed
+    {
+        get { return walkSpeed; }
+        set
+        {
+            walkSpeed = Mathf.Clamp(value, 0f, MaxWalkSpeed);
+        }
+    }
+
     public event Action<float> onHealthChange;
 
 
     protected virtual void Awake()
     {
+        // InitializeStat();
+    }
+
+    private void Start()
+    {
         InitializeStat();
+
     }
 
 
     public virtual void InitializeStat()
     {
-        MaxHealth = 100f;
-        Health = MaxHealth;
+        Health = MaxHealth / 2f;
+        WalkSpeed = MaxWalkSpeed / 2f;
     }
 
-    private void Update()
+
+    public float? GetStat(StatType type)
     {
-        if (Input.GetKeyDown(KeyCode.K))
+        if (type == StatType.Health)
         {
-            Health -= 10f;
+            return Health;
+        }
+        if (type == StatType.WalkSpeed)
+        {
+            return WalkSpeed;
+        }
+
+        return null;
+    }
+
+    public void SetStat(StatType type, float value)
+    {
+        if (type == StatType.Health)
+        {
+            Health = value;
+        }
+        if (type == StatType.WalkSpeed)
+        {
+            walkSpeed = value;
         }
     }
+
+    
 
 }

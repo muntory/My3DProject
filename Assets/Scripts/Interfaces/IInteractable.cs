@@ -6,4 +6,5 @@ public interface IInteractable
 {
     public string GetName();
     public string GetDescription();
+    public void OnInteract(CharacterBase instigator);
 }

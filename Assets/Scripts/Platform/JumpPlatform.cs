@@ -9,11 +9,10 @@ public class JumpPlatform : MonoBehaviour
     {
         if (!other.CompareTag("Player")) return;
 
-        Debug.Log("onTrigger");
-
         if (other.TryGetComponent<PlayerController>(out PlayerController playerController))
         {
             playerController.JumpByOther(jumpForce);
         }
     }
 }
+    

@@ -11,9 +11,10 @@ public class PlayerController : MonoBehaviour
 
     Vector2 moveInput;
 
+    PlayerStat stat;
+    PlayerCharacter playerCharacter;
+
     [Header("Player Input")]
-    [SerializeField]
-    float walkSpeed = 5f;
     [SerializeField]
     float jumpForce = 2f;
     [SerializeField]
@@ -49,11 +50,12 @@ public class PlayerController : MonoBehaviour
     bool isJumping;
     bool isFalling;
     bool isGrounded;
-    float lastGroundTime;
 
     private void Awake()
     {
         playerInput = GetComponent<PlayerInput>();
+        stat = GetComponent<PlayerStat>();
+        playerCharacter = GetComponent<PlayerCharacter>();
 
         rb = GetComponent<Rigidbody>();
         rb.freezeRotation = true;
@@ -187,6 +189,7 @@ public class PlayerController : MonoBehaviour
         if (Physics.Raycast(origin, direction, out hit, detectionDistance, interactableLayer))
         {
             IInteractable interactable = hit.collider.GetComponent<IInteractable>();
+            currentInteractable = interactable;
 
             if (!UIManager.Instance.IsActive<InteractPopup>())
             {
@@ -196,6 +199,7 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
+            currentInteractable = null;
             if (UIManager.Instance.IsActive<InteractPopup>())
             {
                 UIManager.Instance.ClosePopupUI();
@@ -233,7 +237,7 @@ public class PlayerController : MonoBehaviour
         Vector3 moveDir = transform.forward * moveInput.y + transform.right * moveInput.x;
         if (moveDir != Vector3.zero)
         {
-            rb.MovePosition(rb.position + moveDir * walkSpeed * Time.fixedDeltaTime);
+            rb.MovePosition(rb.position + moveDir * stat.WalkSpeed * Time.fixedDeltaTime);
         }
     }
 
@@ -250,6 +254,9 @@ public class PlayerController : MonoBehaviour
                 break;
             case PlayerInputAction.Jump:
                 OnJump(context);
+                break;
+            case PlayerInputAction.Interact:
+                OnInteract(context);
                 break;
         }
     }
@@ -278,14 +285,23 @@ public class PlayerController : MonoBehaviour
 
     void OnJump(InputAction.CallbackContext context)
     {
+        if (!context.performed) return;
+
         if (isJumping || !isGrounded)
         {
             return;
         }
 
         Jump(jumpForce);
-        
-
     }
 
+
+    void OnInteract(InputAction.CallbackContext context)
+    {
+        if (!context.performed) return;
+
+        if (currentInteractable == null) return;
+
+        currentInteractable.OnInteract(playerCharacter);
+    }
 }

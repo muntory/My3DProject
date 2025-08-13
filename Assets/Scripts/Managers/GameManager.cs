@@ -10,11 +10,8 @@ public class GameManager : MonoSingleton<GameManager>
     {
         base.Awake();
 
-        //test
-        GameObject player = Instantiate(Resources.Load<GameObject>("Prefabs/Player"));
-
-        UIManager.Instance.CreateUI<HealthBar>();
-
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     public void AddPlayer(PlayerCharacter player)

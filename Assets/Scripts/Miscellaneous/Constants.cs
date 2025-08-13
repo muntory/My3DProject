@@ -7,6 +7,8 @@ namespace Constants
         public const string Move = "Move";
         public const string Look = "Look";
         public const string Jump = "Jump";
+        public const string Interact = "Interact";
+
 
     }
 
