@@ -12,6 +12,10 @@ public class GameManager : MonoSingleton<GameManager>
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        GameObject go = Resources.Load<GameObject>("Prefabs/Player");
+        PlayerCharacter player = Instantiate(go).GetComponent<PlayerCharacter>();
+        
     }
 
     public void AddPlayer(PlayerCharacter player)
