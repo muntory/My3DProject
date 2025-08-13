@@ -56,7 +56,6 @@ public abstract class ItemBase : MonoBehaviour
         float elapsedTime = 0f;
 
         float baseValue = stat.GetStat(itemEffect.statType).Value;
-        Debug.Log(itemEffect.duration);
 
         while (elapsedTime < itemEffect.duration)
         {
