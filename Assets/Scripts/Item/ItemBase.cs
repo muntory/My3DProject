@@ -44,6 +44,8 @@ public abstract class ItemBase : MonoBehaviour
         }
     }
 
+    // 코루틴 실행하고 Destroy하면 실행중인 코루틴도 사라져서 효과 적용 코루틴 끝날때까지 기다렸다가 destroy 
+    // 아이템에서는 해당 아이템 데이터를 사용하는 캐릭터에게 전달만 해주고 캐릭터에서 적용시키는게 좋은 구조 같다.
     protected IEnumerator ApplyEffectAndDestroy(CharacterStat stat)
     {
         yield return StartCoroutine(ApplyEffectForDuration(stat));
